@@ -28,10 +28,8 @@ int8 *showtokens(Tokens ts){
 }
 
 int8 *showtoken(Token t){
-    int *ret;
     static int8 tmp[256];
     assert(t.type > 0);
-    ret = tmp;
     bzero($1 tmp, sizeof(tmp));
     switch(t.type){
         case text: snprintf($c tmp,255,"%s",t.contents.texttoken->value); break;
@@ -71,9 +69,10 @@ int16 stringlen(int8 *str) {
     return n;
 }
 
-void stringcopy(int8 *dst, int8 *src, int16 size) {
+void stringcopy(int8 *dst, const int8 *src, int16 size) {
     int16 n;
-    int8 *d, *s;
+    int8 *d;
+    const int8 *s;
 
     assert(src && dst && size);
     for (d=dst, s=src, n=size; n; d++, s++, n--)
@@ -131,12 +130,12 @@ Tuple get(String *s) {
 
 }
 
-String *mkstring(int8 *str) {
+String *mkstring(const int8 *str) {
     String *p;
     int16 n, size;
 
     assert(str);
-    n = stringlen(str);
+    n = stringlen((int8*)str);
     if (n == 0) {
     }
     assert(n > 0);
@@ -179,6 +178,7 @@ Token *mktoken(TokenType type, int8 * value){
             assert(textContent != NULL);
             bzero(textContent, sizeof(Text) + value_len + 1);
             stringcopy(textContent->value, value, value_len);
+            textContent->value[value_len] = '\0';
             newToken->contents.texttoken = textContent;
             break;
         }
@@ -187,6 +187,7 @@ Token *mktoken(TokenType type, int8 * value){
             assert(startContent != NULL);
             bzero(startContent, sizeof(TagStart) + value_len + 1);
             stringcopy(startContent->value, value, value_len);
+            startContent->value[value_len] = '\0';
             newToken->contents.start = startContent;
             break;
         }
@@ -195,6 +196,7 @@ Token *mktoken(TokenType type, int8 * value){
             assert(endContent != NULL);
             bzero(endContent, sizeof(TagEnd) + value_len + 1);
             stringcopy(endContent->value, value, value_len);
+            endContent->value[value_len] = '\0';
             newToken->contents.end = endContent;
             break;
         }
@@ -203,6 +205,7 @@ Token *mktoken(TokenType type, int8 * value){
             assert(selfContent != NULL);
             bzero(selfContent, sizeof(SelfClosed) + value_len + 1);
             stringcopy(selfContent->value, value, value_len);
+            selfContent->value[value_len] = '\0';
             newToken->contents.self = selfContent;
             break;
         }
@@ -214,7 +217,7 @@ Token *mktoken(TokenType type, int8 * value){
     return newToken;
 }
 
-Tokens html_lexer(const int8* html_source_text) {
+struct s_tokens html_lexer(const int8* html_source_text) {
     Tokens tokens_result;
     tokens_result.length = 0;
     tokens_result.ts = NULL;
@@ -384,6 +387,31 @@ Tokens html_lexer(const int8* html_source_text) {
 int main(int argc, char **argv){
     (void)argc;
     (void)argv;
+
+    // Test string for the lexer
+    const int8 *html_input = (const int8 *)"<html><body class=\"test\"><h1>Hello <br/> World!</h1><p>Another node.</p></body></html>";
+    // const int8 *html_input = (const int8 *)"<p>Just text</p>";
+    // const int8 *html_input = (const int8 *)"Text only"; // Test case for mkstring: needs n > 0
+    // const int8 *html_input = (const int8 *)"<br/>";
+    // const int8 *html_input = (const int8 *)"<html>";
+
+    if (stringlen((int8*)html_input) == 0) {
+        printf("HTML input string is empty. Lexer might not run if mkstring expects non-empty string.\n");
+        // mkstring currently asserts n > 0. So an empty html_input would crash there.
+        // The html_lexer itself checks for NULL or *html_source_text == '\0'
+        // and returns an empty Tokens struct, which is fine.
+    }
+
+    printf("Input HTML: \"%s\"\n", html_input);
+
+    Tokens lexed_tokens = html_lexer(html_input);
+
+    printf("Lexed Tokens (%d):\n'%s'\n", lexed_tokens.length, showtokens(lexed_tokens));
+
+    destroytokens(lexed_tokens); 
+    
+    printf("\nOriginal manual token test (commented out):\n");
+    /*
     Token *temp_t1, *temp_t2, *temp_t3, *temp_t4, *temp_t5, *temp_t6;
     
     temp_t1 = mktoken(tagstart, "html");
@@ -411,6 +439,7 @@ int main(int argc, char **argv){
     printf("'%s'\n", showtokens(ts));
     
     destroytokens(ts); 
+    */
     
     return 0;
 }

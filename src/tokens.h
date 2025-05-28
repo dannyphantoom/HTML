@@ -1,6 +1,12 @@
-#include "HTML.h"
+#ifndef TOKENS_H_CURSOR_AI
+#define TOKENS_H_CURSOR_AI
 
-
+// It's generally better for tokens.h to not depend on HTML.h directly if possible,
+// or to only depend on very basic types from it that could be forward-declared.
+// However, given the current structure where HTML.h defines int8, int16 etc.,
+// and tokens.h uses them, this include is needed.
+// HTML.h should now have its own include guard to prevent recursion issues.
+#include "HTML.h" 
 
 /* Token Types 
     - text
@@ -8,7 +14,6 @@
     - tagend
     - selfclosed
 */
-
 
 enum e_tag{
     html = 1,
@@ -39,8 +44,8 @@ struct s_selfclosed{
 typedef struct s_selfclosed SelfClosed;
 
 struct s_texttoken{
-    Tag type;
-    int8 value[];
+    // Tag type; // This was commented out as text tokens don't typically have a HTML tag type like 'p' or 'div'
+    int8 value[0]; // Flexible array member
 
 }; 
 typedef struct s_texttoken Text;
@@ -67,7 +72,7 @@ typedef struct s_token Token;
 
 struct s_tokens{
     int16 length;
-    Token *ts;
+    Token *ts; // Pointer to an array of Token structs
 };
 typedef struct s_tokens Tokens;
 
@@ -114,12 +119,15 @@ typedef struct s_tokens Tokens;
     } \
 } while(false)
 
-int8 *showtoken(Token);
-int8 *showtokens(Tokens);
+// Function declarations for functions defined in HTML.c but used with Token/Tokens types
+// Or for functions in a dedicated tokens.c file if you create one.
+
+int8 *showtoken(Token); // Assumes Token is defined above
+int8 *showtokens(Tokens); // Assumes Tokens is defined above
 
 /*Constructors*/
-Token *mktoken(TokenType type, int8 * value);
-Tokens *mktokens();
+Token *mktoken(TokenType type, int8 * value); // Assumes Token and TokenType are defined
+// Tokens *mktokens(); // Declaration for a potential constructor for Tokens struct - not yet implemented
 
 /**
  * @brief Destroys a single token, including its dynamically allocated contents 
@@ -131,4 +139,6 @@ Tokens *mktokens();
  * @param t Pointer to the Token to be destroyed. Assumes 't' was allocated by mktoken
  *          or is otherwise a heap-allocated Token whose contents also need freeing.
  */
-void destroytoken_fully(Token* t);
+void destroytoken_fully(Token* t); // Assumes Token is defined
+
+#endif /* TOKENS_H_CURSOR_AI */
