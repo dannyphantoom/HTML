@@ -44,4 +44,3 @@ Tuple get(String*);
 int16 stringlen(int8*);
 void stringcopy(int8*,int8*,int16);
 int main(int,char**);
-Tokens html_lexer(const int8* html_content);

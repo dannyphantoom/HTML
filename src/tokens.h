@@ -1,5 +1,15 @@
 #include "HTML.h"
 
+
+
+/* Token Types 
+    - text
+    - tagstart
+    - tagend
+    - selfclosed
+*/
+
+
 enum e_tag{
     html = 1,
     body = 2,
@@ -72,15 +82,15 @@ typedef struct s_tokens Tokens;
  *          and that other fields are NULL or their freeing is handled elsewhere if they could co-exist.
  *          The `mktoken` function needs to ensure only one content pointer is set and others are NULL.
  */
-#define destroytoken_content(t_ptr) do { \\
-    if ((t_ptr) == NULL) break; \\
-    switch ((t_ptr)->type) { \\
-        case text: free((t_ptr)->contents.texttoken); (t_ptr)->contents.texttoken = NULL; break; \\
-        case tagstart: free((t_ptr)->contents.start); (t_ptr)->contents.start = NULL; break; \\
-        case tagend: free((t_ptr)->contents.end); (t_ptr)->contents.end = NULL; break; \\
-        case selfclosed: free((t_ptr)->contents.self); (t_ptr)->contents.self = NULL; break; \\
-        default: /* Optional: handle unknown type or assert */ break; \\
-    } \\
+#define destroytoken_content(t_ptr) do { \
+    if ((t_ptr) == NULL) break; \
+    switch ((t_ptr)->type) { \
+        case text: free((t_ptr)->contents.texttoken); (t_ptr)->contents.texttoken = NULL; break; \
+        case tagstart: free((t_ptr)->contents.start); (t_ptr)->contents.start = NULL; break; \
+        case tagend: free((t_ptr)->contents.end); (t_ptr)->contents.end = NULL; break; \
+        case selfclosed: free((t_ptr)->contents.self); (t_ptr)->contents.self = NULL; break; \
+        default: /* Optional: handle unknown type or assert */ break; \
+    } \
 } while(false)
 
 /**
@@ -91,17 +101,17 @@ typedef struct s_tokens Tokens;
  * @param ts_struct The Tokens structure (passed by value) to destroy.
  * 
  * @warning This assumes `ts_struct.ts` is a dynamically allocated array of `Token` structs,
- *          and each `Token`'s `contents` point to dynamically allocated memory.
+ *          and each `Token`\'s `contents` point to dynamically allocated memory.
  */
-#define destroytokens(ts_struct) do {\\
-    if ((ts_struct).ts != NULL) { \\
-        for(int16 _n = 0; _n < (ts_struct).length; _n++) { \\
-            destroytoken_content(&((ts_struct).ts[_n])); \\
-        } \\
-        free((ts_struct).ts); \\
-        (ts_struct).ts = NULL; \\
-        (ts_struct).length = 0; \\
-    } \\
+#define destroytokens(ts_struct) do {\
+    if ((ts_struct).ts != NULL) { \
+        for(int16 _n = 0; _n < (ts_struct).length; _n++) { \
+            destroytoken_content(&((ts_struct).ts[_n])); \
+        } \
+        free((ts_struct).ts); \
+        (ts_struct).ts = NULL; \
+        (ts_struct).length = 0; \
+    } \
 } while(false)
 
 int8 *showtoken(Token);
