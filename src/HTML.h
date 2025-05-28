@@ -18,10 +18,6 @@ typedef unsigned short int int16;
 typedef unsigned int int32;
 typedef unsigned long long int int64;
 
-// Now include tokens.h, which might use the typedefs above (int16)
-// and defines Token/Tokens needed by html_lexer declaration later in this file.
-#include "tokens.h" 
-
 // Struct definitions that use the above typedefs
 struct s_string {
     int16 length;
@@ -69,7 +65,9 @@ int16 stringlen(int8*);
  */
 void stringcopy(int8*, const int8*, int16);
 
-// Declare html_lexer to return Tokens, which is defined in tokens.h
-struct s_tokens html_lexer(const int8* html_content);
+// main is not declared here
+
+// Functions related to Tokens are moved to tokens.h
+// Declaration of html_lexer is moved to lexer.h
 
 #endif /* HTML_H_CURSOR_AI */

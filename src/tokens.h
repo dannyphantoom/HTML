@@ -23,30 +23,39 @@ enum e_tag{
 };
 typedef enum e_tag Tag;
 
+/**
+ * @brief Represents a single HTML attribute (name-value pair).
+ */
+struct s_attribute {
+    int8 *name;  /**< Dynamically allocated attribute name. */
+    int8 *value; /**< Dynamically allocated attribute value. */
+    struct s_attribute *next; /**< Pointer to the next attribute in a linked list. */
+};
+typedef struct s_attribute Attribute;
+
 struct s_tagstart{
     Tag type;
-    int8 value[]; 
-
+    int8 value[64]; // Tag name, e.g., "div", "p" - consider making this dynamic if tag names can be longer
+    Attribute *attributes; /**< Head of linked list of attributes, NULL if no attributes. */
 };
 typedef struct s_tagstart TagStart;
 
 struct s_tagend{
     Tag type;
-    int8 value[];
+    int8 value[64]; // Keep consistent with TagStart for now
 };
 typedef struct s_tagend TagEnd;
 
 struct s_selfclosed{
     Tag type;
-    int8 value[];
-
+    int8 value[64]; // Tag name - consider making this dynamic
+    Attribute *attributes; /**< Head of linked list of attributes, NULL if no attributes. */
 };
 typedef struct s_selfclosed SelfClosed;
 
 struct s_texttoken{
     // Tag type; // This was commented out as text tokens don't typically have a HTML tag type like 'p' or 'div'
-    int8 value[0]; // Flexible array member
-
+    int8 value[];
 }; 
 typedef struct s_texttoken Text;
 
@@ -77,6 +86,22 @@ struct s_tokens{
 typedef struct s_tokens Tokens;
 
 /**
+ * @brief Helper function to free a linked list of attributes.
+ * @param attr Pointer to the head of the attribute list.
+ */
+static inline void free_attribute_list(Attribute *attr) {
+    Attribute *current = attr;
+    Attribute *next_attr;
+    while (current != NULL) {
+        next_attr = current->next;
+        free(current->name);  // Free dynamically allocated name
+        free(current->value); // Free dynamically allocated value
+        free(current);        // Free the attribute node itself
+        current = next_attr;
+    }
+}
+
+/**
  * @brief Macro to free the dynamically allocated content of a Token.
  *        This should be called before freeing the Token itself if the Token is also heap-allocated,
  *        or before the array containing the Token is freed.
@@ -90,11 +115,25 @@ typedef struct s_tokens Tokens;
 #define destroytoken_content(t_ptr) do { \
     if ((t_ptr) == NULL) break; \
     switch ((t_ptr)->type) { \
-        case text: free((t_ptr)->contents.texttoken); (t_ptr)->contents.texttoken = NULL; break; \
-        case tagstart: free((t_ptr)->contents.start); (t_ptr)->contents.start = NULL; break; \
-        case tagend: free((t_ptr)->contents.end); (t_ptr)->contents.end = NULL; break; \
-        case selfclosed: free((t_ptr)->contents.self); (t_ptr)->contents.self = NULL; break; \
-        default: /* Optional: handle unknown type or assert */ break; \
+        case text: if((t_ptr)->contents.texttoken) { free((t_ptr)->contents.texttoken); (t_ptr)->contents.texttoken = NULL; } break; \
+        case tagstart: \
+            if ((t_ptr)->contents.start != NULL) { \
+                free_attribute_list((t_ptr)->contents.start->attributes); \
+                (t_ptr)->contents.start->attributes = NULL; \
+                free((t_ptr)->contents.start); \
+                (t_ptr)->contents.start = NULL; \
+            } \
+            break; \
+        case tagend: if((t_ptr)->contents.end) { free((t_ptr)->contents.end); (t_ptr)->contents.end = NULL; } break; \
+        case selfclosed: \
+            if ((t_ptr)->contents.self != NULL) { \
+                free_attribute_list((t_ptr)->contents.self->attributes); \
+                (t_ptr)->contents.self->attributes = NULL; \
+                free((t_ptr)->contents.self); \
+                (t_ptr)->contents.self = NULL; \
+            } \
+            break; \
+        default: break; \
     } \
 } while(false)
 
@@ -110,8 +149,8 @@ typedef struct s_tokens Tokens;
  */
 #define destroytokens(ts_struct) do {\
     if ((ts_struct).ts != NULL) { \
-        for(int16 _n = 0; _n < (ts_struct).length; _n++) { \
-            destroytoken_content(&((ts_struct).ts[_n])); \
+        for(int16 _idx = 0; _idx < (ts_struct).length; _idx++) { \
+            destroytoken_content(&((ts_struct).ts[_idx])); \
         } \
         free((ts_struct).ts); \
         (ts_struct).ts = NULL; \
